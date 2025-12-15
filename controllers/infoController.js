@@ -23,13 +23,16 @@ exports.getInfoById = async (req, res) => {
 };
 
 exports.createInfo = async (req, res) => {
-    const { title, content, category, date, author } = req.body;
-    try {
-        await db.query('INSERT INTO info_publik (title, content, category, date, author) VALUES (?,?,?,?,?)', 
-            [title, content, category, date, author]);
-        res.json({ success: true, message: 'Info berhasil ditambahkan' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    const query = "INSERT INTO info_publik (title, content, category, event_date, author) VALUES (?, ?, ?, ?, ?)";
+    
+    // Pastikan format tanggal yang dikirim adalah 'YYYY-MM-DD'
+    // Contoh: '2025-12-15', bukan '15 Desember 2025'
+    db.query(query, [title, content, category, event_date, author], (err, result) => {
+        if (err) {
+            console.error("Error upload berita:", err); // Cek Logs Render untuk lihat ini
+            return res.status(500).send(err);
+        }
+        res.status(200).json({ msg: "Berita berhasil diposting" });
     }
 };
 
