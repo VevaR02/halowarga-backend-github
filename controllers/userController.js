@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { logActivity } = require('./auditController');
 
 
 exports.getAllUsers = async (req, res) => {
@@ -11,7 +12,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.createUser = async (req, res) => {
-    const { username, password, role, full_name, rt, rw } = req.body;
+    const { username, password, role, full_name, rt, rw, user_id } = req.body;
     try {
         const finalRT = role === 'rt' ? rt : null;
         const finalRW = (role === 'rt' || role === 'rw') ? rw : null;
@@ -20,6 +21,10 @@ exports.createUser = async (req, res) => {
             'INSERT INTO users (username, password, role, full_name, rt, rw) VALUES (?,?,?,?,?,?)',
             [username, password, role, full_name, finalRT, finalRW]
         );
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Menambah user baru: ${username} (${role})`);
+
         res.json({ success: true, message: 'User berhasil dibuat' });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'Username sudah digunakan!' });
@@ -29,8 +34,8 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
     const { id } = req.params;
-    const { username, password, role, full_name, rt, rw } = req.body;
-    
+    const { username, password, role, full_name, rt, rw, user_id } = req.body;
+
     try {
         const finalRT = role === 'rt' ? rt : null;
         const finalRW = (role === 'rt' || role === 'rw') ? rw : null;
@@ -46,6 +51,10 @@ exports.updateUser = async (req, res) => {
                 [username, role, full_name, finalRT, finalRW, id]
             );
         }
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Mengupdate user: ${username}`);
+
         res.json({ success: true, message: 'User berhasil diperbarui' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -54,8 +63,13 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
     const { id } = req.params;
+    const { user_id } = req.query;
     try {
         await db.query('DELETE FROM users WHERE id = ?', [id]);
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Menghapus user ID: ${id}`);
+
         res.json({ success: true, message: 'User dihapus' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { logActivity } = require('./auditController');
 
 const getAllKas = async (req, res) => {
     try {
@@ -36,13 +37,18 @@ const getAllKas = async (req, res) => {
 
 
 const createKas = async (req, res) => {
-    const { type, amount, description, date, kas_level, rw_number, rt_number } = req.body;
+    const { type, amount, description, date, kas_level, rw_number, rt_number, user_id } = req.body;
     try {
         const level = kas_level || 'desa';
         await db.query(
             'INSERT INTO finance (type, amount, description, date, kas_level, rw_number, rt_number) VALUES (?,?,?,?,?,?,?)',
             [type, amount, description, date, level, rw_number || null, rt_number || null]
         );
+
+        // Audit log
+        const typeLabel = type === 'in' ? 'Pemasukan' : 'Pengeluaran';
+        if (user_id) await logActivity(user_id, `Menambah kas ${typeLabel}: Rp ${amount} - ${description}`);
+
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -52,8 +58,13 @@ const createKas = async (req, res) => {
 
 const deleteKas = async (req, res) => {
     const { id } = req.params;
+    const { user_id } = req.query;
     try {
         await db.query('DELETE FROM finance WHERE id = ?', [id]);
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Menghapus data kas ID: ${id}`);
+
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

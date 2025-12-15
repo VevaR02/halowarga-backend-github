@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { logActivity } = require('./auditController');
 
 exports.getAllInfo = async (req, res) => {
     try {
@@ -23,10 +24,14 @@ exports.getInfoById = async (req, res) => {
 };
 
 exports.createInfo = async (req, res) => {
-    const { title, content, category, date, author } = req.body;
+    const { title, content, category, date, author, user_id } = req.body;
     try {
-        await db.query('INSERT INTO info_publik (title, content, category, date, author) VALUES (?,?,?,?,?)', 
+        await db.query('INSERT INTO info_publik (title, content, category, date, author) VALUES (?,?,?,?,?)',
             [title, content, category, date, author]);
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Menambah info publik: ${title}`);
+
         res.json({ success: true, message: 'Info berhasil ditambahkan' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -35,16 +40,19 @@ exports.createInfo = async (req, res) => {
 
 exports.updateInfo = async (req, res) => {
     const { id } = req.params;
-    const { title, content, category, date, author } = req.body;
+    const { title, content, category, date, author, user_id } = req.body;
     try {
         const [result] = await db.query(
-            'UPDATE info_publik SET title = ?, content = ?, category = ?, date = ?, author = ? WHERE id = ?', 
+            'UPDATE info_publik SET title = ?, content = ?, category = ?, date = ?, author = ? WHERE id = ?',
             [title, content, category, date, author, id]
         );
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Info tidak ditemukan' });
         }
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Mengupdate info publik: ${title}`);
 
         res.json({ success: true, message: 'Info berhasil diperbarui' });
     } catch (error) {
@@ -54,12 +62,16 @@ exports.updateInfo = async (req, res) => {
 
 exports.deleteInfo = async (req, res) => {
     const { id } = req.params;
+    const { user_id } = req.query;
     try {
         const [result] = await db.query('DELETE FROM info_publik WHERE id = ?', [id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, message: 'Info tidak ditemukan' });
         }
+
+        // Audit log
+        if (user_id) await logActivity(user_id, `Menghapus info publik ID: ${id}`);
 
         res.json({ success: true, message: 'Info berhasil dihapus' });
     } catch (error) {
