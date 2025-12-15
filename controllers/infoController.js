@@ -23,42 +23,23 @@ exports.getInfoById = async (req, res) => {
 };
 
 exports.createInfo = async (req, res) => {
-    
-    const { title, content, category, event_date, author } = req.body;
-
-    
-    if (!title || !content || !event_date) {
-        return res.status(400).json({ success: false, message: "Judul, Isi, dan Tanggal wajib diisi" });
-    }
-
+    const { title, content, category, date, author } = req.body;
     try {
-       
-        const query = "INSERT INTO info_publik (title, content, category, event_date, author) VALUES (?, ?, ?, ?, ?)";
-        
-        const [result] = await db.query(query, [title, content, category, event_date, author]);
-
-        res.status(201).json({ 
-            success: true, 
-            message: "Berita berhasil diposting",
-            data: { id: result.insertId, ...req.body }
-        });
-
-    } catch (err) {
-        console.error("Error upload berita:", err);
-        res.status(500).json({ success: false, message: err.message });
+        await db.query('INSERT INTO info_publik (title, content, category, date, author) VALUES (?,?,?,?,?)', 
+            [title, content, category, date, author]);
+        res.json({ success: true, message: 'Info berhasil ditambahkan' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-
 exports.updateInfo = async (req, res) => {
     const { id } = req.params;
-    // PERBAIKAN 3: Ubah 'date' jadi 'event_date' sesuai database baru
-    const { title, content, category, event_date, author } = req.body; 
-
+    const { title, content, category, date, author } = req.body;
     try {
         const [result] = await db.query(
-            'UPDATE info_publik SET title = ?, content = ?, category = ?, event_date = ?, author = ? WHERE id = ?', 
-            [title, content, category, event_date, author, id]
+            'UPDATE info_publik SET title = ?, content = ?, category = ?, date = ?, author = ? WHERE id = ?', 
+            [title, content, category, date, author, id]
         );
 
         if (result.affectedRows === 0) {
@@ -70,7 +51,6 @@ exports.updateInfo = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
 
 exports.deleteInfo = async (req, res) => {
     const { id } = req.params;
