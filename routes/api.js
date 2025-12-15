@@ -35,6 +35,7 @@ router.delete('/warga/:id', warga.deleteCitizen);
 router.get('/aspirasi', aspirasi.getAllAspirasi);
 router.post('/aspirasi', aspirasi.createAspirasi);
 router.put('/aspirasi/:id', aspirasi.updateAspirasi);
+router.delete('/aspirasi/:id', aspirasi.deleteAspirasi);
 
 
 router.get('/info', info.getAllInfo);
