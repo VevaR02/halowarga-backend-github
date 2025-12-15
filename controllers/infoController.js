@@ -23,26 +23,42 @@ exports.getInfoById = async (req, res) => {
 };
 
 exports.createInfo = async (req, res) => {
-    const query = "INSERT INTO info_publik (title, content, category, event_date, author) VALUES (?, ?, ?, ?, ?)";
     
-    // Pastikan format tanggal yang dikirim adalah 'YYYY-MM-DD'
-    // Contoh: '2025-12-15', bukan '15 Desember 2025'
-    db.query(query, [title, content, category, event_date, author], (err, result) => {
-        if (err) {
-            console.error("Error upload berita:", err); // Cek Logs Render untuk lihat ini
-            return res.status(500).send(err);
-        }
-        res.status(200).json({ msg: "Berita berhasil diposting" });
+    const { title, content, category, event_date, author } = req.body;
+
+    
+    if (!title || !content || !event_date) {
+        return res.status(400).json({ success: false, message: "Judul, Isi, dan Tanggal wajib diisi" });
+    }
+
+    try {
+       
+        const query = "INSERT INTO info_publik (title, content, category, event_date, author) VALUES (?, ?, ?, ?, ?)";
+        
+        const [result] = await db.query(query, [title, content, category, event_date, author]);
+
+        res.status(201).json({ 
+            success: true, 
+            message: "Berita berhasil diposting",
+            data: { id: result.insertId, ...req.body }
+        });
+
+    } catch (err) {
+        console.error("Error upload berita:", err);
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
+
 exports.updateInfo = async (req, res) => {
     const { id } = req.params;
-    const { title, content, category, date, author } = req.body;
+    // PERBAIKAN 3: Ubah 'date' jadi 'event_date' sesuai database baru
+    const { title, content, category, event_date, author } = req.body; 
+
     try {
         const [result] = await db.query(
-            'UPDATE info_publik SET title = ?, content = ?, category = ?, date = ?, author = ? WHERE id = ?', 
-            [title, content, category, date, author, id]
+            'UPDATE info_publik SET title = ?, content = ?, category = ?, event_date = ?, author = ? WHERE id = ?', 
+            [title, content, category, event_date, author, id]
         );
 
         if (result.affectedRows === 0) {
@@ -54,6 +70,7 @@ exports.updateInfo = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 exports.deleteInfo = async (req, res) => {
     const { id } = req.params;
